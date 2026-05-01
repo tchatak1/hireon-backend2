@@ -2,7 +2,6 @@ from pydantic import BaseModel, EmailStr
 from typing import Optional
 import uuid
 
-# ── Register ────────────────────────────────────────────────────
 class UserRegister(BaseModel):
     name:         str
     email:        EmailStr
@@ -13,12 +12,20 @@ class UserRegister(BaseModel):
     category:     Optional[str] = None
     bio:          Optional[str] = None
 
-# ── Login ────────────────────────────────────────────────────────
 class UserLogin(BaseModel):
-    identifier: str   # email OR phone number
+    identifier: str
     password:   str
 
-# ── Response (what we send back — never includes password) ───────
+class UserUpdate(BaseModel):
+    name:            Optional[str]  = None
+    phone_number:    Optional[str]  = None
+    location:        Optional[str]  = None
+    city:            Optional[str]  = None
+    category:        Optional[str]  = None
+    bio:             Optional[str]  = None
+    profile_picture: Optional[str]  = None
+    availability:    Optional[bool] = None
+
 class UserResponse(BaseModel):
     user_id:         uuid.UUID
     name:            str
@@ -34,7 +41,6 @@ class UserResponse(BaseModel):
     class Config:
         from_attributes = True
 
-# ── Token ────────────────────────────────────────────────────────
 class Token(BaseModel):
     access_token: str
     token_type:   str
