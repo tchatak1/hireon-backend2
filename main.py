@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import users
+from routers import users, bio
 
 app = FastAPI(title="HireOn API", version="1.0.0")
 
@@ -13,6 +13,7 @@ app.add_middleware(
 )
 
 app.include_router(users.router)
+app.include_router(bio.router) 
 
 @app.get("/")
 def root():
