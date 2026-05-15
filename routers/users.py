@@ -8,6 +8,10 @@ from auth import hash_password, verify_password, create_token, decode_token
 import os
 from dotenv import load_dotenv
 import httpx
+from typing import List
+from sqlalchemy import func
+from models import Review, User
+
 
 load_dotenv()
 
@@ -154,7 +158,7 @@ async def upload_picture(
     return current_user
 
 # ── GET ALL USERS (for home screen) ──────────────────────────────
-@router.get("/users", response_model=list[UserResponse])
+@router.get("/users", response_model=List[UserResponse])
 def get_all_users(
     category:     str  = None,
     city:         str  = None,
@@ -162,7 +166,29 @@ def get_all_users(
     db:           Session = Depends(get_db)
 ):
     query = db.query(User)
-    if category:     query = query.filter(User.category == category)
-    if city:         query = query.filter(User.city == city)
+    if category:              query = query.filter(User.category == category)
+    if city:                  query = query.filter(User.city == city)
     if availability is not None: query = query.filter(User.availability == availability)
-    return query.all()
+    users = query.all()
+
+    # Attach average rating to each user
+    result = []
+    for user in users:
+        avg = db.query(func.avg(Review.rating)).filter(
+            Review.reviewed_id == user.user_id
+        ).scalar()
+        user_dict = {
+            "user_id":         user.user_id,
+            "name":            user.name,
+            "email":           user.email,
+            "phone_number":    user.phone_number,
+            "location":        user.location,
+            "city":            user.city,
+            "category":        user.category,
+            "bio":             user.bio,
+            "profile_picture": user.profile_picture,
+            "availability":    user.availability,
+            "average_rating":  round(float(avg), 1) if avg else None,
+        }
+        result.append(user_dict)
+    return result
