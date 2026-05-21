@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from database import get_db
 from models import User
 from routers.users import get_current_user
-import google.generativeai as genai
+from google import genai
 import PyPDF2
 import io
 import os
@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 router = APIRouter(prefix="/bio", tags=["Bio Generation"])
 
@@ -40,7 +40,6 @@ async def generate_bio(
 
     # ── Call Gemini to generate bio ───────────────────────────────
     try:
-        model = genai.GenerativeModel("gemini-2.5-flash-lite")
         prompt = f"""
 You are a professional profile writer for a service hiring platform called HireOn.
 
@@ -59,7 +58,10 @@ CV:
 
 Return ONLY the bio text, nothing else.
 """
-        response = model.generate_content(prompt)
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=prompt,
+        )
         bio = response.text.strip()
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"AI generation failed: {str(e)}")

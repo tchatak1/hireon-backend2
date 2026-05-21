@@ -1,5 +1,6 @@
-from sqlalchemy import Column, String, Boolean, Text, Float, ForeignKey, Integer, UniqueConstraint
+from sqlalchemy import Column, String, Boolean, Text, Float, ForeignKey, Integer, UniqueConstraint, DateTime
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.sql import func
 import uuid
 from database import Base
 
@@ -38,6 +39,7 @@ class Notification(Base):
     type            = Column(String(50), nullable=False)
     message         = Column(Text, nullable=False)
     is_read         = Column(Boolean, default=False)
+    created_at      = Column(DateTime(timezone=True), server_default=func.now())
 
 class Review(Base):
     __tablename__ = "reviews"

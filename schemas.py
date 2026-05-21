@@ -76,6 +76,7 @@ class NotificationResponse(BaseModel):
     type:            str
     message:         str
     is_read:         bool
+    created_at:      Optional[str] = None
     client:          Optional[UserResponse] = None
     request:         Optional[HireRequestResponse] = None
     class Config:

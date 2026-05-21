@@ -144,19 +144,24 @@ def get_notifications(
             "type":            notif.type,
             "message":         notif.message,
             "is_read":         notif.is_read,
+            "created_at":      notif.created_at.isoformat() if notif.created_at else None,
             "client":          None,
             "request":         None,
         }
-        # Attach hire request + client info for hire_request type
         if notif.hire_request_id:
             req = db.query(HireRequest).filter(
                 HireRequest.request_id == notif.hire_request_id
             ).first()
             if req:
                 notif_dict["request"] = req
-                client = db.query(User).filter(User.user_id == req.client_id).first()
-                if client:
-                    notif_dict["client"] = client
+                # For accepted/refused: show the provider's avatar (they responded)
+                # For everything else: show the client's avatar (they initiated)
+                if notif.type in ("request_accepted", "request_refused"):
+                    other_user = db.query(User).filter(User.user_id == req.provider_id).first()
+                else:
+                    other_user = db.query(User).filter(User.user_id == req.client_id).first()
+                if other_user:
+                    notif_dict["client"] = other_user
         result.append(notif_dict)
 
     return result
