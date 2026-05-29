@@ -112,3 +112,25 @@ class UserProfileResponse(BaseModel):
     reviews:         List[ReviewResponse] = []
     class Config:
         from_attributes = True
+
+class MessageCreate(BaseModel):
+    content: str
+
+class MessageResponse(BaseModel):
+    message_id:      uuid.UUID
+    conversation_id: uuid.UUID
+    sender_id:       uuid.UUID
+    content:         str
+    is_read:         bool
+    created_at:      Optional[str] = None
+    class Config:
+        from_attributes = True
+
+class ConversationResponse(BaseModel):
+    conversation_id: uuid.UUID
+    other_user:      UserResponse
+    last_message:    Optional[str]     = None
+    last_message_at: Optional[str]     = None
+    unread_count:    int               = 0
+    class Config:
+        from_attributes = True

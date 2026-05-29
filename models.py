@@ -50,3 +50,21 @@ class Review(Base):
     request_id  = Column(UUID(as_uuid=True), ForeignKey("hire_requests.request_id"), nullable=False)
     rating      = Column(Integer, nullable=False)
     comment     = Column(Text, nullable=True)
+
+class Conversation(Base):
+    __tablename__ = "conversations"
+    __table_args__ = (UniqueConstraint('user1_id', 'user2_id'),)
+    conversation_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user1_id        = Column(UUID(as_uuid=True), ForeignKey("users.user_id"), nullable=False)
+    user2_id        = Column(UUID(as_uuid=True), ForeignKey("users.user_id"), nullable=False)
+    created_at      = Column(DateTime(timezone=True), server_default=func.now())
+    last_message_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class Message(Base):
+    __tablename__ = "messages"
+    message_id      = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    conversation_id = Column(UUID(as_uuid=True), ForeignKey("conversations.conversation_id"), nullable=False)
+    sender_id       = Column(UUID(as_uuid=True), ForeignKey("users.user_id"), nullable=False)
+    content         = Column(Text, nullable=False)
+    is_read         = Column(Boolean, default=False)
+    created_at      = Column(DateTime(timezone=True), server_default=func.now())
