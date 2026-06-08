@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy import or_, and_, func
+from sqlalchemy import or_, func
 from typing import List
 import uuid
 
@@ -8,6 +8,7 @@ from database import get_db
 from models import User, Conversation, Message
 from schemas import MessageCreate, MessageResponse, ConversationResponse, UserResponse
 from routers.users import get_current_user
+from routers.payment import require_subscription
 
 router = APIRouter(prefix="/chat", tags=["Chat"])
 
@@ -30,7 +31,6 @@ def get_or_create_conversation(
     if not other_user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    # Always store user1_id < user2_id to enforce the unique constraint
     uid1 = min(str(current_user.user_id), str(other_user_id))
     uid2 = max(str(current_user.user_id), str(other_user_id))
 
@@ -77,8 +77,8 @@ def list_conversations(
 
     result = []
     for conv in convs:
-        other_id  = conv.user2_id if str(conv.user1_id) == uid else conv.user1_id
-        other     = db.query(User).filter(User.user_id == other_id).first()
+        other_id = conv.user2_id if str(conv.user1_id) == uid else conv.user1_id
+        other    = db.query(User).filter(User.user_id == other_id).first()
         if not other:
             continue
 
@@ -119,7 +119,6 @@ def get_messages(
     if not conv:
         raise HTTPException(status_code=404, detail="Conversation not found")
 
-    # Mark incoming messages as read
     db.query(Message).filter(
         Message.conversation_id == conversation_id,
         Message.sender_id != current_user.user_id,
@@ -149,7 +148,7 @@ def get_messages(
 def send_message(
     conversation_id: uuid.UUID,
     body:            MessageCreate,
-    current_user:    User    = Depends(get_current_user),
+    current_user:    User    = Depends(require_subscription),
     db:              Session = Depends(get_db),
 ):
     uid  = str(current_user.user_id)
@@ -165,13 +164,11 @@ def send_message(
         raise HTTPException(status_code=400, detail="Message cannot be empty")
 
     msg = Message(
-        conversation_id=conversation_id,
-        sender_id=current_user.user_id,
-        content=body.content.strip(),
+        conversation_id = conversation_id,
+        sender_id       = current_user.user_id,
+        content         = body.content.strip(),
     )
     db.add(msg)
-
-    # Update last_message_at on conversation
     conv.last_message_at = msg.created_at or func.now()
     db.commit()
     db.refresh(msg)

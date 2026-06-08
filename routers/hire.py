@@ -5,6 +5,7 @@ from database import get_db
 from models import User, HireRequest, Notification
 from schemas import HireRequestCreate, HireRequestResponse, NotificationResponse
 from routers.users import get_current_user
+from routers.payment import require_subscription
 import uuid
 
 router = APIRouter(prefix="/hire", tags=["Hire Requests"])
@@ -13,19 +14,16 @@ router = APIRouter(prefix="/hire", tags=["Hire Requests"])
 @router.post("/request", response_model=HireRequestResponse, status_code=201)
 def send_hire_request(
     data:         HireRequestCreate,
-    current_user: User    = Depends(get_current_user),
+    current_user: User    = Depends(require_subscription),
     db:           Session = Depends(get_db)
 ):
-    # Can't hire yourself
     if str(data.provider_id) == str(current_user.user_id):
         raise HTTPException(status_code=400, detail="You cannot hire yourself")
 
-    # Check provider exists
     provider = db.query(User).filter(User.user_id == data.provider_id).first()
     if not provider:
         raise HTTPException(status_code=404, detail="Provider not found")
 
-    # Create hire request
     hire_request = HireRequest(
         client_id      = current_user.user_id,
         provider_id    = data.provider_id,
@@ -41,10 +39,8 @@ def send_hire_request(
     db.commit()
     db.refresh(hire_request)
 
-    # Build location string for notification message
     location_str = f"in {current_user.city}" if current_user.city else ""
 
-    # Create notification for provider
     notification = Notification(
         user_id         = data.provider_id,
         hire_request_id = hire_request.request_id,
@@ -61,11 +57,11 @@ def send_hire_request(
 @router.put("/request/{request_id}/accept", response_model=HireRequestResponse)
 def accept_hire_request(
     request_id:   uuid.UUID,
-    current_user: User    = Depends(get_current_user),
+    current_user: User    = Depends(require_subscription),
     db:           Session = Depends(get_db)
 ):
     request = db.query(HireRequest).filter(
-        HireRequest.request_id == request_id,
+        HireRequest.request_id  == request_id,
         HireRequest.provider_id == current_user.user_id
     ).first()
 
@@ -78,7 +74,6 @@ def accept_hire_request(
     db.commit()
     db.refresh(request)
 
-    # Notify client
     notification = Notification(
         user_id         = request.client_id,
         hire_request_id = request.request_id,
@@ -95,11 +90,11 @@ def accept_hire_request(
 @router.put("/request/{request_id}/refuse", response_model=HireRequestResponse)
 def refuse_hire_request(
     request_id:   uuid.UUID,
-    current_user: User    = Depends(get_current_user),
+    current_user: User    = Depends(require_subscription),
     db:           Session = Depends(get_db)
 ):
     request = db.query(HireRequest).filter(
-        HireRequest.request_id == request_id,
+        HireRequest.request_id  == request_id,
         HireRequest.provider_id == current_user.user_id
     ).first()
 
@@ -112,7 +107,6 @@ def refuse_hire_request(
     db.commit()
     db.refresh(request)
 
-    # Notify client
     notification = Notification(
         user_id         = request.client_id,
         hire_request_id = request.request_id,
@@ -154,8 +148,6 @@ def get_notifications(
             ).first()
             if req:
                 notif_dict["request"] = req
-                # For accepted/refused: show the provider's avatar (they responded)
-                # For everything else: show the client's avatar (they initiated)
                 if notif.type in ("request_accepted", "request_refused"):
                     other_user = db.query(User).filter(User.user_id == req.provider_id).first()
                 else:
@@ -175,7 +167,7 @@ def mark_as_read(
 ):
     notif = db.query(Notification).filter(
         Notification.notification_id == notification_id,
-        Notification.user_id == current_user.user_id
+        Notification.user_id         == current_user.user_id
     ).first()
     if not notif:
         raise HTTPException(status_code=404, detail="Notification not found")

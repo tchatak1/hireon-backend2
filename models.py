@@ -68,3 +68,17 @@ class Message(Base):
     content         = Column(Text, nullable=False)
     is_read         = Column(Boolean, default=False)
     created_at      = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class Subscription(Base):
+    __tablename__ = "subscriptions"
+    subscription_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id         = Column(UUID(as_uuid=True), ForeignKey("users.user_id"), nullable=False)
+    plan            = Column(String, nullable=False)   # quarterly | semi_annual | annual
+    amount          = Column(Integer, nullable=False)
+    duration_days   = Column(Integer, nullable=False)
+    phone_number    = Column(String, nullable=False)
+    reference       = Column(String, unique=True, nullable=False)  # CamPay reference
+    status          = Column(String, default="pending")            # pending | active | failed
+    created_at      = Column(DateTime(timezone=True), server_default=func.now())
+    expires_at      = Column(DateTime(timezone=True), nullable=False)
