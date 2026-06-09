@@ -1,6 +1,7 @@
 from sqlalchemy import Column, String, Boolean, Text, Float, ForeignKey, Integer, UniqueConstraint, DateTime
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
+from sqlalchemy.orm import Session, relationship
 import uuid
 from database import Base
 
@@ -82,3 +83,20 @@ class Subscription(Base):
     status          = Column(String, default="pending")            # pending | active | failed
     created_at      = Column(DateTime(timezone=True), server_default=func.now())
     expires_at      = Column(DateTime(timezone=True), nullable=False)
+
+
+class PortfolioPost(Base):
+    __tablename__ = "portfolio_posts"
+    post_id     = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id     = Column(UUID(as_uuid=True), ForeignKey("users.user_id"), nullable=False)
+    description = Column(Text, nullable=True)
+    created_at  = Column(DateTime(timezone=True), server_default=func.now())
+    images      = relationship("PortfolioImage", back_populates="post", cascade="all, delete-orphan")
+
+class PortfolioImage(Base):
+    __tablename__ = "portfolio_images"
+    image_id    = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    post_id     = Column(UUID(as_uuid=True), ForeignKey("portfolio_posts.post_id"), nullable=False)
+    image_url   = Column(String, nullable=False)
+    order_index = Column(Integer, default=0)
+    post        = relationship("PortfolioPost", back_populates="images")
