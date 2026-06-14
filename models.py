@@ -100,3 +100,12 @@ class PortfolioImage(Base):
     image_url   = Column(String, nullable=False)
     order_index = Column(Integer, default=0)
     post        = relationship("PortfolioPost", back_populates="images")
+
+class Report(Base):
+    __tablename__ = "reports"
+    report_id   = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    reporter_id = Column(UUID(as_uuid=True), ForeignKey("users.user_id"), nullable=False)
+    reported_id = Column(UUID(as_uuid=True), ForeignKey("users.user_id"), nullable=False)
+    reason      = Column(String(100), nullable=False)
+    details     = Column(Text, nullable=True)
+    created_at  = Column(DateTime(timezone=True), server_default=func.now())
